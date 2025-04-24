@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Info Zpráv Sender</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Stardos+Stencil:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+
+        <div class="top-controls">
+            <h1>Info Zprávy</h1>
+            <button type="button" id="reloadButton" class="button-utility" title="Znovu načíst stránku a obnovit poslední uložený stav">Obnovit stránku</button>
+        </div>
+
+        <form id="webhookForm">
+
+            <div class="form-group">
+                <label for="webhookUrl">Webhook URL:</label>
+                <input type="url" id="webhookUrl" placeholder="Sem vložte URL webhooku" required>
+            </div>
+
+            <div class="webhook-save-inline form-group">
+                 <label for="saveWebhookName">Uložit aktuální URL jako:</label>
+                 <div class="input-button-group">
+                    <input type="text" id="saveWebhookName" placeholder="Název pro uložení (např. 'Test Server')">
+                    <button type="button" id="saveWebhookButton" class="button-utility small-button" title="Uložit aktuální URL s tímto názvem">Uložit</button>
+                 </div>
+                 <div id="webhookMgmtStatus" class="status-inline"></div>
+            </div>
+
+            <div class="form-group">
+                 <label>Uložené Webhooky:</label>
+                 <div id="savedWebhookList" class="saved-webhook-list-container">
+                     <span class="placeholder-text">Žádné webhooky nebyly uloženy.</span>
+                 </div>
+            </div>
+
+
+            <div class="form-group">
+                <label for="embedColor">Barva bloků:</label>
+                <input type="color" id="embedColor" value="#7a805b">
+                 <small>Nastaví barevný proužek pro všechny textové bloky.</small>
+            </div>
+
+            <hr class="divider">
+
+            <h2>Textové bloky</h2>
+            <div id="messageBlocksContainer">
+            </div>
+
+            <button type="button" id="addBlockButton" class="button-secondary">Přidat textový blok</button>
+
+            <hr class="divider">
+
+            <button type="submit" id="sendButton">Odeslat zprávu</button>
+        </form>
+
+        <div id="statusMessage"></div>
+    </div>
+
+    <template id="messageBlockTemplate">
+        <div class="message-block">
+            <button type="button" class="remove-block-button" title="Odstranit tento blok">X</button>
+            <div class="form-group">
+                <label>Textový blok:</label>
+                <textarea class="block-text" rows="4" placeholder="Text pro tento blok..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Obrázek k bloku (nepovinné):</label>
+                <input type="url" class="block-image-url" placeholder="URL obrázku...">
+            </div>
+        </div>
+    </template>
+
+    <script src="script.js"></script>
+</body>
+</html>
