@@ -16,57 +16,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const APP_STATE_KEY = 'discordSenderAppState_v2';
     const SAVED_WEBHOOKS_KEY = 'discordSavedWebhooks_v2';
     const MAX_EMBEDS = 10;
+    const IMAGE_URL_REGEX = /\.(jpe?g|png|gif|webp|bmp)(\?.*)?$/i; // Slightly updated Regex to handle query parameters potentially
 
     function saveCurrentState() {
         const blocksData = [];
         messageBlocksContainer.querySelectorAll('.message-block').forEach(block => {
             const textInput = block.querySelector('.block-text');
             const imageUrlInput = block.querySelector('.block-image-url');
-            blocksData.push({
-                text: textInput ? textInput.value : '',
-                imageUrl: imageUrlInput ? imageUrlInput.value : ''
-            });
+            blocksData.push({ text: textInput ? textInput.value : '', imageUrl: imageUrlInput ? imageUrlInput.value : '' });
         });
-        const state = {
-            webhookUrl: webhookUrlInput.value,
-            embedColor: embedColorInput.value,
-            blocks: blocksData
-        };
-        try {
-            localStorage.setItem(APP_STATE_KEY, JSON.stringify(state));
-        } catch (e) {
-            console.error("Chyba při ukládání stavu:", e);
-            showStatus("Nepodařilo se uložit stav (možná plné úložiště?).", "error");
-        }
+        const state = { webhookUrl: webhookUrlInput.value, embedColor: embedColorInput.value, blocks: blocksData };
+        try { localStorage.setItem(APP_STATE_KEY, JSON.stringify(state)); }
+        catch (e) { console.error("Chyba při ukládání stavu:", e); showStatus("Nepodařilo se uložit stav (možná plné úložiště?).", "error"); }
     }
 
     function loadSavedState() {
         const savedStateJSON = localStorage.getItem(APP_STATE_KEY);
         let state = null;
-        if (savedStateJSON) {
-            try { state = JSON.parse(savedStateJSON); }
-            catch (e) {
-                console.error("Chyba při načítání uloženého stavu:", e);
-                localStorage.removeItem(APP_STATE_KEY);
-            }
-        }
+        if (savedStateJSON) { try { state = JSON.parse(savedStateJSON); } catch (e) { console.error("Chyba při načítání uloženého stavu:", e); localStorage.removeItem(APP_STATE_KEY); } }
         webhookUrlInput.value = state?.webhookUrl || '';
         embedColorInput.value = state?.embedColor || getCssVariable('--button-bg') || '#7a805b';
         messageBlocksContainer.innerHTML = '';
-        if (state?.blocks && Array.isArray(state.blocks) && state.blocks.length > 0) {
-            state.blocks.forEach(blockData => { addBlock(blockData.text, blockData.imageUrl); });
-        } else {
-            addBlock();
-        }
+        if (state?.blocks && Array.isArray(state.blocks) && state.blocks.length > 0) { state.blocks.forEach(blockData => { addBlock(blockData.text, blockData.imageUrl); }); }
+        else { addBlock(); }
     }
 
     function getSavedWebhooks() {
         const saved = localStorage.getItem(SAVED_WEBHOOKS_KEY);
         try { return saved ? JSON.parse(saved) : []; }
-        catch (e) {
-            console.error("Chyba při načítání uložených webhooků:", e);
-            localStorage.removeItem(SAVED_WEBHOOKS_KEY); return [];
-        }
+        catch (e) { console.error("Chyba při načítání uložených webhooků:", e); localStorage.removeItem(SAVED_WEBHOOKS_KEY); return []; }
     }
 
     function saveWebhooks(webhooksArray) {
@@ -77,38 +55,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function displaySavedWebhooks() {
         const webhooks = getSavedWebhooks();
         savedWebhookListDiv.innerHTML = '';
-
-        if (webhooks.length === 0) {
-             savedWebhookListDiv.innerHTML = '<span class="placeholder-text">Žádné webhooky nebyly uloženy.</span>';
-             return;
-        }
-
+        if (webhooks.length === 0) { savedWebhookListDiv.innerHTML = '<span class="placeholder-text">Žádné webhooky nebyly uloženy.</span>'; return; }
         webhooks.sort((a, b) => a.name.localeCompare(b.name));
-
         webhooks.forEach(wh => {
             const item = document.createElement('div');
             item.className = 'saved-webhook-item';
             item.textContent = wh.name;
             item.title = `Klikněte pro načtení:\n${wh.url}`;
             item.dataset.url = wh.url;
-
-            item.addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-webhook-btn')) return;
-                webhookUrlInput.value = wh.url;
-                showWebhookMgmtStatus(`Webhook '${wh.name}' načten.`, "success");
-                saveCurrentState();
-            });
-
+            item.addEventListener('click', (e) => { if (e.target.classList.contains('delete-webhook-btn')) return; webhookUrlInput.value = wh.url; showWebhookMgmtStatus(`Webhook '${wh.name}' načten.`, "success"); saveCurrentState(); });
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-webhook-btn';
             deleteBtn.innerHTML = '×';
             deleteBtn.title = `Smazat webhook '${wh.name}'`;
             deleteBtn.dataset.name = wh.name;
-
-            deleteBtn.addEventListener('click', () => {
-                handleDeleteWebhook(wh.name, wh.url);
-            });
-
+            deleteBtn.addEventListener('click', () => { handleDeleteWebhook(wh.name, wh.url); });
             item.appendChild(deleteBtn);
             savedWebhookListDiv.appendChild(item);
         });
@@ -118,40 +79,21 @@ document.addEventListener('DOMContentLoaded', () => {
          let webhooks = getSavedWebhooks();
          const initialLength = webhooks.length;
          webhooks = webhooks.filter(wh => !(wh.name === nameToDelete && wh.url === urlToDelete));
-
-         if (webhooks.length < initialLength) {
-             if (saveWebhooks(webhooks)) {
-                 showWebhookMgmtStatus(`Webhook '${nameToDelete}' smazán.`, "success");
-                 displaySavedWebhooks();
-                 if (webhookUrlInput.value === urlToDelete) {
-                     webhookUrlInput.value = '';
-                     saveCurrentState();
-                 }
-             }
-         } else {
-              showWebhookMgmtStatus(`Webhook '${nameToDelete}' nebyl nalezen ke smazání.`, "error");
-         }
+         if (webhooks.length < initialLength) { if (saveWebhooks(webhooks)) { showWebhookMgmtStatus(`Webhook '${nameToDelete}' smazán.`, "success"); displaySavedWebhooks(); if (webhookUrlInput.value === urlToDelete) { webhookUrlInput.value = ''; saveCurrentState(); } } }
+         else { showWebhookMgmtStatus(`Webhook '${nameToDelete}' nebyl nalezen ke smazání.`, "error"); }
      }
-
 
     function handleSaveWebhook() {
         const name = saveWebhookNameInput.value.trim();
         const url = webhookUrlInput.value.trim();
         if (!name) { showWebhookMgmtStatus("Prosím, zadejte název pro uložení.", "error"); return; }
-        if (!url || !url.startsWith('https://discord.com/api/webhooks/')) { showWebhookMgmtStatus("Aktuální URL v poli není platný webhook.", "error"); return; }
+        if (!url) { showWebhookMgmtStatus("Prosím, vložte URL webhooku do pole výše.", "error"); return; }
+        if (!url.startsWith('https://discord.com/api/webhooks/')) { showWebhookMgmtStatus("Zadaná URL adresa se nezdá být platný Discord webhook.", "error"); return; }
         const webhooks = getSavedWebhooks();
         const existingIndex = webhooks.findIndex(wh => wh.name.toLowerCase() === name.toLowerCase());
-        if (existingIndex !== -1) {
-             webhooks[existingIndex].url = url;
-             showWebhookMgmtStatus(`Webhook '${name}' aktualizován.`, "success");
-        } else {
-            webhooks.push({ name: name, url: url });
-            showWebhookMgmtStatus(`Webhook '${name}' uložen.`, "success");
-        }
-        if (saveWebhooks(webhooks)) {
-            displaySavedWebhooks();
-            saveWebhookNameInput.value = '';
-        }
+        if (existingIndex !== -1) { webhooks[existingIndex].url = url; showWebhookMgmtStatus(`Webhook '${name}' aktualizován.`, "success"); }
+        else { webhooks.push({ name: name, url: url }); showWebhookMgmtStatus(`Webhook '${name}' uložen.`, "success"); }
+        if (saveWebhooks(webhooks)) { displaySavedWebhooks(); saveWebhookNameInput.value = ''; }
     }
 
     function showWebhookMgmtStatus(message, type = 'info') {
@@ -163,9 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addBlock(initialText = '', initialImageUrl = '') {
-        if (messageBlocksContainer.children.length >= MAX_EMBEDS) {
-            showStatus(`Discord podporuje maximálně ${MAX_EMBEDS} vložených bloků.`, "error"); return;
-        }
+        if (messageBlocksContainer.children.length >= MAX_EMBEDS) { showStatus(`Discord podporuje maximálně ${MAX_EMBEDS} vložených bloků.`, "error"); return; }
         const templateContent = messageBlockTemplate.content.cloneNode(true);
         const newBlock = templateContent.querySelector('.message-block');
         const textInput = newBlock.querySelector('.block-text');
@@ -182,20 +122,24 @@ document.addEventListener('DOMContentLoaded', () => {
     webhookForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         clearStatus();
+        saveCurrentState();
+
         const webhookUrl = webhookUrlInput.value.trim();
         const embedColorValue = embedColorInput.value;
         const blocks = messageBlocksContainer.querySelectorAll('.message-block');
-        if (!webhookUrl) { showStatus('Webhook URL vyžadována.', 'error'); return; }
-        if (!webhookUrl.startsWith('https://discord.com/api/webhooks/')) { showStatus('Nesprávný Webhook URL formát.', 'error'); return; }
+
+        if (!webhookUrl) { showStatus('Prosím, zadejte Webhook URL před odesláním.', 'error'); return; }
+        if (!webhookUrl.startsWith('https://discord.com/api/webhooks/')) { showStatus('Zadaná Webhook URL adresa není ve správném formátu.', 'error'); return; }
         if (blocks.length === 0) { showStatus('Nejméně jeden textový blok vyžadován.', 'error'); return; }
         if (blocks.length > MAX_EMBEDS) { showStatus(`Nelze přidat více než ${MAX_EMBEDS} textových bloků. Prosím, odstraňte nějaké.`, 'error'); return; }
+
         sendButton.disabled = true;
         sendButton.textContent = 'Odesílání...';
         const embedsArray = [];
         let hasContent = false;
         let errorOccurred = false;
         try {
-            blocks.forEach(block => {
+            blocks.forEach((block, index) => { // Added index for better error reporting
                 if (errorOccurred) return;
                 const textInput = block.querySelector('.block-text');
                 const imageUrlInput = block.querySelector('.block-image-url');
@@ -205,9 +149,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     hasContent = true;
                     const embedData = { color: hexToDecimal(embedColorValue) };
                     if (text) embedData.description = text;
+
                     if (imageUrl) {
-                        if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) { embedData.image = { url: imageUrl }; }
-                        else { showStatus(`Nesprávný odkaz obrázku v jednom z bloků: "${imageUrl}". Musí začínat http:// nebo https://`, 'error'); errorOccurred = true; return; }
+                        if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+                            showStatus(`Blok #${index + 1}: Odkaz na obrázek musí začínat http:// nebo https://.`, 'error');
+                            errorOccurred = true; return;
+                        }
+                        if (!IMAGE_URL_REGEX.test(imageUrl)) {
+                             showStatus(`Blok #${index + 1}: Odkaz na obrázek nevypadá jako přímý odkaz na soubor (.jpg, .png, .gif).`, 'error');
+                             errorOccurred = true; return;
+                        }
+                        embedData.image = { url: imageUrl };
                     }
                     embedsArray.push(embedData);
                 }

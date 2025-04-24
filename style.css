@@ -375,3 +375,8 @@ h2 {
     font-style: italic;
     font-size: 0.9em;
 }
+.image-url-note {
+    color: var(--accent-color); 
+    font-weight: bold; 
+    font-style: normal; 
+}
